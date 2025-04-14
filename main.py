@@ -32,19 +32,39 @@ else:
 system_message = {
     "role": "system",
     "content": (
-        "You are an expert in processing technical construction drawings. "
-        "You will receive both a high-resolution image of a plumbing drawing page and a block of text extracted "
-        "from that page. Your task is to extract structured information for each plumbing item present on the page. "
-        "Extract the following information for each item: "
-        "1. Item/Fixture Type (e.g., pipe & fittings, ductwork, electrical conduit, etc.), "
-        "2. Quantity, "
-        "3. Model Number or Specification Reference, "
-        "4. Page Reference, "
-        "5. Associated Dimensions (if any), "
-        "6. Mounting Type (e.g., wall-hung, floor-mounted, etc. if stated). "
-        "Return your response as valid JSON in the following schema:"
-        "{\n  \"page\": <page number>,\n  \"items\": [\n    {\n      \"type\": \"...\",\n      \"quantity\": \"...\",\n      \"spec\": \"...\",\n      \"dimensions\": \"...\",\n      \"mounting\": \"...\"\n    },\n    ...\n  ]\n}\n\n"
-        "Focus on the signal; use the textual context and the visual content together to disambiguate items and ignore extraneous details."
+        "You are a specialized estimator focused specifically on plumbing work packages from construction submittal PDFs. "
+        "You'll be given a high-resolution plumbing drawing image and extracted contextual text from the same PDF page. "
+        "Your task is to extract detailed structured data on all plumbing-related items visible or described.\n\n"
+
+        "Return your response as strictly valid JSON using the schema below:\n"
+        "{\n"
+        "  \"page\": <page number>,\n"
+        "  \"plumbing_items\": [\n"
+        "    {\n"
+        "      \"item_type\": \"<Specific plumbing item type (pipe, fitting, valve, fixture, equipment, etc.)>\",\n"
+        "      \"quantity\": \"<Exact numeric quantity, avoid 'multiple' or unclear counts>\",\n"
+        "      \"model_or_spec\": \"<Manufacturer Model Number, Part Number, or Spec Reference if available>\",\n"
+        "      \"dimensions\": \"<Size, Diameter, Length, BE height, or other relevant dimensions>\",\n"
+        "      \"mounting_type\": \"<Mounting or installation type (wall-hung, floor-mounted, ceiling, vertical riser, etc. if available)>\",\n"
+        "      \"page_reference\": \"<Page number or drawing reference>\",\n"
+        "      \"confidence\": \"<Confidence score between 0.0 (low) to 1.0 (high)>\",\n"
+        "      \"notes\": \"<Brief notes ONLY if confidence is below 0.7 or if clarification needed else write N/A>\"\n"
+        "    },\n"
+        "    ...\n"
+        "  ]\n"
+        "}\n\n"
+
+        "### CRITICAL GUIDELINES:\n"
+        "- Focus ONLY on plumbing-related items (pipes, fittings, valves, plumbing fixtures, drains, vents, risers, etc.). Ignore unrelated items such as electrical, structural, HVAC unless explicitly tied to plumbing work.\n"
+        "- Provide exact quantities; visually count symbols from diagrams if needed. Do NOT generalize as 'multiple'. Provide an exact number or a best-estimate with notes.\n"
+        "- Extract accurate spec references (e.g., HUH-9, OM-135, HHWR, HHWS, CWR). Include details even if only partially visible.\n"
+        "- Carefully extract and clearly indicate dimensions like diameter (Ø), length, elevations (BE heights), etc., directly from annotations or tables.\n"
+        "- Clearly identify the mounting method or location from text labels or visual symbols (wall-mounted, ceiling-hung, floor-mounted, vertical piping, horizontal suspended piping, risers).\n"
+        "- Provide a confidence score (0.0 to 1.0) per item based on clarity, accuracy, and available evidence from both image and text.\n"
+        "- Include concise notes ONLY if confidence is below 0.7 or when an estimated count or dimension is necessary due to unclear or partial information.\n\n"
+
+        "Extracted data will be directly used for plumbing material estimation and fabrication, thus high accuracy and detailed extraction are essential.\n"
+        "Respond only in the requested structured JSON format."
     )
 }
 
@@ -71,7 +91,6 @@ response = openai.ChatCompletion.create(
     # files=[{"file": open(output_image_path, "rb"), "purpose": "image"}]
 )
 
-# ----- STEP 5: Process and Print the Structured Output -----
 structured_output = response.choices[0].message["content"]
 print("✅ Structured Output from Multimodal LLM:")
 print(structured_output)
