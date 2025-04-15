@@ -6,6 +6,8 @@ This system processes PDF files containing plumbing drawings, extracts structure
 
 The system consists of several components working together:
 
+![System Architecture Diagram](https://github.com/darshanvjani/Build-Factory/blob/master/img/bf.png)
+
 1. **PDF Processing Pipeline**:
    - Splits input PDF into individual pages
    - Processes pages in parallel for efficiency
