@@ -160,7 +160,3 @@ The system includes robust error handling:
 3. **Memory Issues**:
    - Reduce batch size for very large PDFs
    - Monitor system resources during processing
-
-## License
-
-MIT License 
