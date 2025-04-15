@@ -1,20 +1,50 @@
+import os
 import openai
 import base64
+import json
 
 def encode_image_to_base64(image_path: str) -> str:
+    """
+    Encode an image file to base64 string.
+    
+    Args:
+        image_path (str): Path to the image file
+        
+    Returns:
+        str: Base64 encoded image string
+    """
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+        
     with open(image_path, "rb") as img:
         return base64.b64encode(img.read()).decode('utf-8')
 
-def extract_structured_data_from_plumbing_drawing(image_path: str, context_text: str, page_number: int, api_key: str, model: str = "gpt-4.5-preview-2025-02-27"):
+def extract_structured_data_from_plumbing_drawing(image_path: str, context_text: str, page_number: int, api_key: str, model: str = "gpt-4.1-2025-04-14"):
     """
-    Calls the multimodal LLM using the new API interface.
+    Calls the multimodal LLM using the OpenAI API interface.
     This function base64 encodes the image and sends it along with the contextual text
     in the messages. It returns the structured JSON response.
+    
+    Args:
+        image_path (str): Path to the image file
+        context_text (str): Extracted contextual text from the PDF
+        page_number (int): Page number
+        api_key (str): OpenAI API key
+        model (str): OpenAI model to use (default: gpt-4-vision-preview)
+        
+    Returns:
+        str: JSON response from the OpenAI API
     """
+    if not api_key:
+        raise ValueError("OpenAI API key is required")
+        
     openai.api_key = api_key
 
     # Encode the image to base64
-    base64_image = encode_image_to_base64(image_path)
+    try:
+        base64_image = encode_image_to_base64(image_path)
+    except Exception as e:
+        raise Exception(f"Error encoding image: {str(e)}")
 
     # Build the system prompt (plumbing-specific and with confidence score)
     system_message = {
@@ -73,10 +103,56 @@ def extract_structured_data_from_plumbing_drawing(image_path: str, context_text:
         ]
     }
 
-    # Use the new API call (note: for the new interface, use openai.chat.completions.create)
-    response = openai.chat.completions.create(
-        model=model,
-        messages=[system_message, user_message]
-    )
+    # Use the OpenAI API call
+    try:
+        response = openai.chat.completions.create(
+            model=model,
+            messages=[system_message, user_message]
+        )
+        
+        # Validate that the response is valid JSON
+        content = response.choices[0].message.content
+        try:
+            json.loads(content)  # Just to validate it's proper JSON
+            return content
+        except json.JSONDecodeError:
+            print(f"Warning: Response from OpenAI is not valid JSON for page {page_number}")
+            return content
+            
+    except Exception as e:
+        raise Exception(f"Error calling OpenAI API: {str(e)}")
 
-    return response.choices[0].message.content
+if __name__ == "__main__":
+    # Example usage
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Extract structured data from a plumbing drawing.')
+    parser.add_argument('--image_path', required=True, help='Path to the image file')
+    parser.add_argument('--context_text', required=True, help='Path to the context text file')
+    parser.add_argument('--page_number', type=int, required=True, help='Page number')
+    parser.add_argument('--api_key', required=True, help='OpenAI API key')
+    parser.add_argument('--output_dir', default='output', help='Directory to save output files')
+    
+    args = parser.parse_args()
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    # Read context text from file
+    with open(args.context_text, 'r') as f:
+        context_text = f.read()
+    
+    # Extract structured data
+    structured_output = extract_structured_data_from_plumbing_drawing(
+        image_path=args.image_path,
+        context_text=context_text,
+        page_number=args.page_number,
+        api_key=args.api_key
+    )
+    
+    # Save the structured output
+    output_file = os.path.join(args.output_dir, f"structured_output_page_{args.page_number}.json")
+    with open(output_file, 'w') as f:
+        f.write(structured_output)
+    
+    print(f"✅ Structured output saved to {output_file}!")
