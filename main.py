@@ -4,13 +4,13 @@ import asyncio
 from pdf_splitter import split_pdf
 from parallel_processor import run_parallel_processing
 from contextual_text import process_pdf_pages_parallel
-
-# Hardcoded configuration
-INPUT_PDF = r"output_pdfs\main.pdf"
-OUTPUT_DIR = "output"
-UNSTRUCTURED_API_KEY = "Dk2o22hmDS9lBoFxH3YLNwU8jLXLtf"  # Replace with your actual API key
-OPENAI_API_KEY = "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"
-SKIP_FIRST_PAGE = True
+from config import (
+    INPUT_PDF,
+    OUTPUT_DIR,
+    UNSTRUCTURED_API_KEY,
+    OPENAI_API_KEY,
+    SKIP_FIRST_PAGE
+)
 
 async def process_pdf(input_pdf, output_dir, unstructured_api_key, openai_api_key, skip_first_page=True):
     """
@@ -49,7 +49,7 @@ async def process_pdf(input_pdf, output_dir, unstructured_api_key, openai_api_ke
     return combined_results
 
 async def main():
-    # Process the PDF using hardcoded values
+    # Process the PDF using configuration settings
     combined_results = await process_pdf(
         input_pdf=INPUT_PDF,
         output_dir=OUTPUT_DIR,

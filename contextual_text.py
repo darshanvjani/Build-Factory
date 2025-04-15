@@ -5,7 +5,13 @@ import os
 import asyncio
 import aiohttp
 from typing import List, Tuple, Dict, Any
-import backoff  # We'll need to install this
+import backoff
+from config import (
+    UNSTRUCTURED_API_URL,
+    TIMEOUT_SECONDS,
+    MAX_RETRIES,
+    LARGE_FILE_THRESHOLD
+)
 
 async def get_clean_contextual_text_from_page(pdf_path: str, api_key: str) -> tuple:
     """
@@ -28,7 +34,7 @@ async def get_clean_contextual_text_from_page(pdf_path: str, api_key: str) -> tu
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
     # API endpoint
-    url = "https://api.unstructuredapp.io/general/v0/general"
+    url = UNSTRUCTURED_API_URL
     headers = {
         "accept": "application/json",
         "unstructured-api-key": api_key
@@ -39,17 +45,17 @@ async def get_clean_contextual_text_from_page(pdf_path: str, api_key: str) -> tu
     print(f"File size: {file_size:.2f} MB")
     
     # If file is too large, we might need to adjust our approach
-    if file_size > 10:  # If file is larger than 10MB
+    if file_size > LARGE_FILE_THRESHOLD:  # If file is larger than threshold
         print(f"Warning: File is large ({file_size:.2f} MB). This might cause timeout issues.")
 
     # Use a longer timeout for larger files
-    timeout = aiohttp.ClientTimeout(total=600)  # 10 minutes total timeout
+    timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)  # 10 minutes total timeout
     
-    # Try up to 3 times with exponential backoff
-    for attempt in range(3):
+    # Try up to MAX_RETRIES times with exponential backoff
+    for attempt in range(MAX_RETRIES):
         try:
             # Process the PDF using the cloud API
-            print(f"Sending request to API for {pdf_path} (attempt {attempt+1}/3)")
+            print(f"Sending request to API for {pdf_path} (attempt {attempt+1}/{MAX_RETRIES})")
             
             # Use aiohttp for asynchronous HTTP requests
             async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -73,28 +79,28 @@ async def get_clean_contextual_text_from_page(pdf_path: str, api_key: str) -> tu
                     except aiohttp.ClientResponseError as e:
                         error_text = await response.text()
                         print(f"API Error Response: {error_text}")
-                        if attempt < 2:  # If not the last attempt
+                        if attempt < MAX_RETRIES - 1:  # If not the last attempt
                             wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
                             print(f"Retrying in {wait_time} seconds...")
                             await asyncio.sleep(wait_time)
                             continue
                         raise Exception(f"API Error: {e.status} - {e.message}. Response: {error_text}")
         except asyncio.TimeoutError:
-            if attempt < 2:  # If not the last attempt
+            if attempt < MAX_RETRIES - 1:  # If not the last attempt
                 wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
                 print(f"Request timed out. Retrying in {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
                 continue
             raise Exception(f"Request timed out after {timeout.total} seconds")
         except aiohttp.ClientError as e:
-            if attempt < 2:  # If not the last attempt
+            if attempt < MAX_RETRIES - 1:  # If not the last attempt
                 wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
                 print(f"Connection error: {str(e)}. Retrying in {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
                 continue
             raise Exception(f"Connection error: {str(e)}. Please check your internet connection and API endpoint.")
         except Exception as e:
-            if attempt < 2:  # If not the last attempt
+            if attempt < MAX_RETRIES - 1:  # If not the last attempt
                 wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
                 print(f"Error: {str(e)}. Retrying in {wait_time} seconds...")
                 await asyncio.sleep(wait_time)

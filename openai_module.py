@@ -2,6 +2,7 @@ import os
 import openai
 import base64
 import json
+from config import OPENAI_MODEL
 
 def encode_image_to_base64(image_path: str) -> str:
     """
@@ -19,7 +20,7 @@ def encode_image_to_base64(image_path: str) -> str:
     with open(image_path, "rb") as img:
         return base64.b64encode(img.read()).decode('utf-8')
 
-def extract_structured_data_from_plumbing_drawing(image_path: str, context_text: str, page_number: int, api_key: str, model: str = "gpt-4.1-2025-04-14"):
+def extract_structured_data_from_plumbing_drawing(image_path: str, context_text: str, page_number: int, api_key: str, model: str = OPENAI_MODEL):
     """
     Calls the multimodal LLM using the OpenAI API interface.
     This function base64 encodes the image and sends it along with the contextual text
