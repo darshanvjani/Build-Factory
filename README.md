@@ -1,6 +1,6 @@
 # PDF Processing System for Plumbing Drawings
 
-This system processes PDF files containing plumbing drawings, extracts structured data from each page using AI, and combines the results into a single JSON output. It uses a combination of Unstructured Cloud API for text extraction and OpenAI's GPT-4 Vision for intelligent analysis.
+This system processes PDF files containing plumbing drawings, extracts structured data from each page using AI, and combines the results into a single JSON output. It uses a combination of Unstructured Cloud API for text extraction and OpenAI's GPT-4.5  for intelligent analysis.
 
 ## System Architecture
 
@@ -25,7 +25,7 @@ The system consists of several components working together:
    - Uses 300 DPI for optimal quality
    - Saves images for visual analysis
 
-4. **AI Analysis (OpenAI GPT-4 Vision)**:
+4. **AI Analysis (OpenAI GPT-4.5)**:
    - Analyzes both extracted text and images
    - Identifies plumbing components
    - Extracts specifications and dimensions
